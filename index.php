@@ -141,6 +141,8 @@ if ($search !== '') {
 <head>
     <meta charset="UTF-8" />
     <title>Personnel Search</title>
+    <meta name="theme-color" content="#7b4a2e" />
+    <link rel="manifest" href="manifest.json" />
     <style>
         * { box-sizing: border-box; }
         body {
@@ -413,6 +415,12 @@ function clearSearch() {
         input.value = '';
         input.focus();
     }
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js');
+    });
 }
 </script>
 </body>

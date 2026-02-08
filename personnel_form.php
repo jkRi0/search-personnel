@@ -65,6 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8" />
     <title><?php echo $id > 0 ? 'Edit Personnel' : 'Add Personnel'; ?></title>
+    <meta name="theme-color" content="#7b4a2e" />
+    <link rel="manifest" href="manifest.json" />
     <style>
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #f7f1e8, #fffaf3); margin:0; padding:20px; }
@@ -135,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                     </select>
                     <div class="small-link">
-                        <a href="offices_list.php" target="_blank">Manage office names</a>
+                        <a href="offices_list.php">Manage office names</a>
                     </div>
                 </div>
 
@@ -147,5 +149,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js');
+    });
+}
+</script>
 </body>
 </html>

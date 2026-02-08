@@ -8,6 +8,8 @@ $result = $conn->query("SELECT id, office_name FROM offices ORDER BY office_name
 <head>
     <meta charset="UTF-8" />
     <title>Office Management</title>
+    <meta name="theme-color" content="#7b4a2e" />
+    <link rel="manifest" href="manifest.json" />
     <style>
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #f7f1e8, #fffaf3); margin:0; padding:20px; }
@@ -94,6 +96,12 @@ function confirmBulkDelete(type) {
         return false;
     }
     return confirm('Delete selected records? This action cannot be undone.');
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js');
+    });
 }
 </script>
 </body>

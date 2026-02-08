@@ -56,10 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8" />
     <title><?php echo $id > 0 ? 'Edit Office' : 'Add Office'; ?></title>
+    <meta name="theme-color" content="#7b4a2e" />
+    <link rel="manifest" href="manifest.json" />
     <style>
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #f7f1e8, #fffaf3); margin:0; padding:20px; }
-        .page-wrapper { max-width: 500px; margin: 0 auto; }
+        .page-wrapper { max-width: 550px; margin: 0 auto; }
         .card { background:#fff; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.08); overflow:hidden; }
         .card-header { background:#7b4a2e; color:#fff; padding:16px 24px; }
         .card-header h1 { margin:0; font-size:20px; }
@@ -113,5 +115,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js');
+    });
+}
+</script>
 </body>
 </html>
