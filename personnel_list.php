@@ -75,7 +75,7 @@ $result = $conn->query($sql);
             <h1>Personnel Management</h1>
             <div>
                 <a href="personnel_import.php" class="button-link">Import CSV</a>
-                <a href="search_personnel.php" class="button-link btn-secondary">Search Page</a>
+                <a href="index.php" class="button-link btn-secondary">Search Page</a>
                 <a href="personnel_form.php" class="button-link">Add Personnel</a>
             </div>
         </div>

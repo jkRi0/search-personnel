@@ -3,6 +3,14 @@ require_once 'db.php';
 
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
 $results = [];
+$suggestions = [];
+
+function normalize_for_match($value) {
+    $value = strtolower(trim($value));
+    $value = preg_replace('/[^a-z0-9\s]/', ' ', $value);
+    $value = preg_replace('/\s+/', ' ', $value);
+    return trim($value);
+}
 
 if ($search !== '') {
     $sql = "SELECT p.id, p.full_name, o.office_name
@@ -18,6 +26,114 @@ if ($search !== '') {
     $stmt->bind_param('sss', $like, $like, $search);
     $stmt->execute();
     $results = $stmt->get_result();
+
+    if ($results && $results->num_rows === 0) {
+        $candidateSql = "SELECT DISTINCT p.full_name, o.office_name
+                         FROM personnel p
+                         JOIN offices o ON p.office_id = o.id
+                         WHERE SOUNDEX(p.full_name) = SOUNDEX(?)
+                            OR p.full_name LIKE ?
+                         ORDER BY p.full_name
+                         LIMIT 200";
+        $candidateStmt = $conn->prepare($candidateSql);
+        $candidateStmt->bind_param('ss', $search, $like);
+        $candidateStmt->execute();
+        $candidates = $candidateStmt->get_result();
+
+        $needle = normalize_for_match($search);
+        $scored = [];
+
+        $maxDistance = 3;
+        if (strlen($needle) <= 4) {
+            $maxDistance = 2;
+        }
+
+        $scoredRows = [];
+
+        if ($candidates) {
+            while ($c = $candidates->fetch_assoc()) {
+                $fullName = (string)$c['full_name'];
+                $officeName = (string)$c['office_name'];
+                $hay = normalize_for_match($fullName);
+
+                if ($needle === '' || $hay === '') {
+                    continue;
+                }
+
+                $best = levenshtein($needle, $hay);
+
+                $tokens = explode(' ', $hay);
+                foreach ($tokens as $t) {
+                    if (strlen($t) < 3) {
+                        continue;
+                    }
+                    $d = levenshtein($needle, $t);
+                    if ($d < $best) {
+                        $best = $d;
+                    }
+                }
+
+                if ($best > 0 && $best <= $maxDistance) {
+                    $scoredRows[] = [
+                        'full_name' => $fullName,
+                        'office_name' => $officeName,
+                        'score' => $best,
+                    ];
+                }
+            }
+        }
+
+        if (empty($scoredRows)) {
+            $fallbackSql = "SELECT DISTINCT p.full_name, o.office_name
+                            FROM personnel p
+                            JOIN offices o ON p.office_id = o.id
+                            ORDER BY p.full_name
+                            LIMIT 500";
+            $fallbackCandidates = $conn->query($fallbackSql);
+
+            if ($fallbackCandidates) {
+                while ($c = $fallbackCandidates->fetch_assoc()) {
+                    $fullName = (string)$c['full_name'];
+                    $officeName = (string)$c['office_name'];
+                    $hay = normalize_for_match($fullName);
+
+                    if ($needle === '' || $hay === '') {
+                        continue;
+                    }
+
+                    $best = levenshtein($needle, $hay);
+                    $tokens = explode(' ', $hay);
+                    foreach ($tokens as $t) {
+                        if (strlen($t) < 3) {
+                            continue;
+                        }
+                        $d = levenshtein($needle, $t);
+                        if ($d < $best) {
+                            $best = $d;
+                        }
+                    }
+
+                    if ($best > 0 && $best <= $maxDistance) {
+                        $scoredRows[] = [
+                            'full_name' => $fullName,
+                            'office_name' => $officeName,
+                            'score' => $best,
+                        ];
+                    }
+                }
+            }
+        }
+
+        usort($scoredRows, function ($a, $b) {
+            if ($a['score'] === $b['score']) {
+                return strcasecmp($a['full_name'], $b['full_name']);
+            }
+            return $a['score'] <=> $b['score'];
+        });
+        $suggestions = array_slice($scoredRows, 0, 5);
+
+        $candidateStmt->close();
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -183,6 +299,19 @@ if ($search !== '') {
             color: #6c757d;
             font-size: 14px;
         }
+        .suggestions {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #5a3a22;
+        }
+        .suggestions a {
+            color: #8b5a2b;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .suggestions a:hover {
+            text-decoration: underline;
+        }
         @media (max-width: 600px) {
             .content {
                 padding: 16px;
@@ -240,6 +369,27 @@ if ($search !== '') {
                     </table>
                 <?php else: ?>
                     <p class="no-results">No personnel found. Try using a shorter keyword or a different name/office.</p>
+                    <?php if (!empty($suggestions)): ?>
+                        <div class="suggestions">Did you mean:</div>
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Full Name</th>
+                                <th>Office</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <?php $si = 1; foreach ($suggestions as $s): ?>
+                                <tr>
+                                    <td><?php echo $si++; ?></td>
+                                    <td><?php echo htmlspecialchars($s['full_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($s['office_name']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
